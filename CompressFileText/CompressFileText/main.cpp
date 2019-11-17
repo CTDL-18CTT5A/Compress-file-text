@@ -1,12 +1,16 @@
-#include<iostream>
-#include<vector>
-#include"ComFileText.h"
-using namespace std;
-
+﻿#include"ComFileText.h"
 
 int main()
 {
+
+	
 	FILE* file = fopen("Input.txt", "r");
-	HaffMap temp = ReadFileText(file);
-	OutputHaffMap(temp);
+	FILE* fileCompresss = fopen("InputCompress.rar", "w");
+	HuffData data = ReadFileText(file);
+	HuffMap map;
+	//int size = sizeof(arr) / sizeof(arr[0]);
+	int size = strlen(data.s);
+	HuffmanCompress(file  , fileCompresss,  map , data, size);
+
+	return 0;
 }

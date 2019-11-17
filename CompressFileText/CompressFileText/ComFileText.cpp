@@ -1,17 +1,23 @@
+﻿#pragma once
 #include"ComFileText.h"
 #include<iostream>
 #include<vector>
 using namespace std;
 
-void init(NODE*& tree)
+
+NODE* newNode(char data, int freq)
 {
-	tree = NULL;
+	NODE* temp = new NODE;
+	temp->pLeft = NULL;
+	temp->pRight = NULL;
+	temp->_text = data;
+	temp->_freq = freq;
+	return temp;
+
 }
 
-//NODE* CreateNewRootHaffman()
-//{
-//
-//}
+
+
 
 bool IsExist(char s, vector<char> str)
 {
@@ -24,6 +30,7 @@ bool IsExist(char s, vector<char> str)
 
 }
 
+//Đếm số lương kí tự khác nhau trong file
 int NumberOfCharFile(FILE* p)
 {
 	if (p == NULL)
@@ -43,14 +50,14 @@ int NumberOfCharFile(FILE* p)
 	return count;
 }
 
-HaffMap ReadFileText(FILE* p)
+HuffData ReadFileText(FILE* p)
 {
 	if (p == NULL)
 	{
 		cout << "Khong the doc file";
 		exit(0);
 	}
-	HaffMap haf;
+	HuffData haf;
 	int n = NumberOfCharFile(p);
 	rewind(p);
 	haf.s = new char[n];
@@ -78,7 +85,7 @@ HaffMap ReadFileText(FILE* p)
 				}
 				rowtemp++;
 			}
-			haf.wei[rowtemp]+=1;
+			haf.wei[rowtemp] += 1;
 		}
 		ch = getc(p);
 	}
@@ -88,21 +95,245 @@ HaffMap ReadFileText(FILE* p)
 }
 
 
-void OutputHaffMap(HaffMap haff)
+HuffmanTree* InitHuffTree(int size)
 {
-	for (int i = 0; i < strlen(haff.s); i++)
+	HuffmanTree* hufftree = new HuffmanTree;
+
+	hufftree->size = 0;
+
+	hufftree->Array = (NODE**)malloc(size * sizeof(NODE*));
+
+	return hufftree;
+
+}
+
+void SwapNode(NODE*& a, NODE*& b)
+{
+	NODE* temp = a;
+	a = b;
+	b = temp;
+}
+
+void MinHeapify(HuffmanTree* hufftree, int index)
+{
+	int min = index;
+	int left = 2 * index + 1;
+	int right = 2 * index + 2;
+
+	if (left < hufftree->size && hufftree->Array[left]->_freq < hufftree->Array[min]->_freq)
 	{
-		cout << haff.s[i] << "\t" << haff.wei[i] << endl;
+		min = left;
+	}
+	if (right < hufftree->size && hufftree->Array[right]->_freq < hufftree->Array[min]->_freq)
+	{
+		min = right;
+	}
+	if (min != index)
+	{
+		SwapNode(hufftree->Array[min], hufftree->Array[index]);
+		MinHeapify(hufftree, min);
 	}
 }
 
-void CreateTreeHaffman(NODE*& treeHaffman , FILE *p)
+NODE* getNodeMin(HuffmanTree* hufftree)
 {
-	if (p == NULL)
+	NODE* node = hufftree->Array[0];
+	//Lấy ra thì phải đưa cuối lên đầu và trừ bớt size(giống heap sort)
+	hufftree->Array[0] = hufftree->Array[hufftree->size - 1];
+
+	--hufftree->size;
+	MinHeapify(hufftree, 0);
+
+	return node;
+}
+
+void insertHuffTree(HuffmanTree* hufftree, NODE* newnode)
+{
+	++hufftree->size;
+	//Vị trí cuối cùng để thêm vào phần tử mới
+	int posInsert = hufftree->size - 1;
+
+	//Nếu node insert nhỏ hơn root thì phải chuyển lên đầu để tiếp tục tạo root rồi chèn vào
+	 //Nó sẽ so với root mà chưa cây con đó(tại vì khi thêm vào chỉ cần check tại nhanh đó thôi)
+	//Đẩu thằng root nhỏ nhất luôn lên vị trí pos = 0;
+	while (posInsert && newnode->_freq < hufftree->Array[(posInsert - 1) / 2]->_freq)
 	{
-		cout << "File is not exits" << endl;
-		return;
+		hufftree->Array[posInsert] = hufftree->Array[(posInsert - 1) / 2];
+		posInsert = (posInsert - 1) / 2;
 	}
 
+	hufftree->Array[posInsert] = newnode;
 
 }
+
+
+
+void BuildMinHeap(HuffmanTree* hufftree)
+{
+	int n = hufftree->size - 1;
+	for (int i = (n - 1) / 2; i >= 0; i--)
+	{
+		MinHeapify(hufftree, i);
+	}
+}
+
+bool isMinSize(HuffmanTree* hufftree)
+{
+	return (hufftree->size == 1);
+}
+
+
+HuffmanTree* CreateHeapHuffman(HuffData map , int size)
+{
+	HuffmanTree* hufftree = InitHuffTree(size);
+	hufftree->size = size;
+
+	for (int i = 0; i < size; i++)
+	{
+		hufftree->Array[i] = newNode(map.s[i], map.wei[i]);
+	}
+
+	BuildMinHeap(hufftree);
+
+	return hufftree;
+}
+
+
+NODE* builfHuffmanTree(HuffData map ,  int size)
+{
+
+	NODE* left, * right, * root;
+
+	HuffmanTree* hufftree = CreateHeapHuffman(map , size);
+
+	while (!isMinSize(hufftree))
+	{
+		left = getNodeMin(hufftree);
+		right = getNodeMin(hufftree);
+
+
+		root = newNode(' ', left->_freq + right->_freq);
+
+		root->pLeft = left;
+		root->pRight = right;
+		
+		insertHuffTree(hufftree, root);
+	}
+
+	//Sau khi đã liên kết lại hết với nhau thì chỉ cần lấy ra root
+
+	return getNodeMin(hufftree);
+
+}
+
+bool isLeaf(NODE* root)
+{
+	return !(root->pLeft) && !(root->pRight);
+
+}
+
+void ArrayOutput(HuffMap &map , int index , int a[], int n)
+{
+	int i = 0;
+	for (i; i < n; ++i)
+	{
+		map.BitArray[index][i] = a[i];
+	}
+	map.BitArray[index][i] = 2;
+
+}
+
+//Duyệt cây lưu dữ liệu vào map
+void CompressFile(HuffMap &map , NODE* root, int arr[], int top)
+{
+	NODE* temp = root;
+	static int index = 0;
+	// Assign 0 to left edge and recur 
+	if (root->pLeft) 
+	{
+
+		arr[top] = 0;
+		CompressFile(map ,root->pLeft, arr, top + 1);
+	}
+
+	// Assign 1 to right edge and recur 
+	if (root->pRight) 
+	{
+
+		arr[top] = 1;
+		CompressFile(map,  root->pRight, arr, top + 1);
+	}
+
+	// If this is a leaf node, then 
+	// it contains one of the input 
+	// characters, print the character 
+	// and its code from arr[] 
+	if (isLeaf(root)) 
+	{ 
+		map.charater[index] = root->_text;
+		map.BitArray[index] = new int[top];
+		ArrayOutput(map, index , arr, top);
+		index++;
+	}
+}
+
+
+//Lưu đống dữ liệu vào map
+void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  data, int size)
+{
+
+
+	// Construct Huffman Tree 
+	NODE* root = builfHuffmanTree(data, size);
+	// Print Huffman codes using 
+	// the Huffman tree built above 
+	int arr[300], top = 0;
+	map.BitArray = new int* [size];
+
+	map.charater = new char[size];
+	CompressFile(map , root, arr, top);
+
+	rewind(fileInput);
+
+	//Lưu vào file
+	char ch = getc(fileInput);
+	while (ch != EOF)
+	{
+		int j = 0;
+		for (int i = 0; i < size; i++)
+		{
+			if (ch == map.charater[i])
+			{
+				while (map.BitArray[i][j] != 2)
+				{
+					fprintf(fileOut, "%d", map.BitArray[i][j]);
+					j++;
+				}
+				break;
+			}
+		}
+		ch = getc(fileInput);
+	}
+
+	
+}
+
+//void FileOutPut(FILE* InputFILE, FILE *OutputFile ,  HuffMap &map )
+//{
+//	HuffData data = ReadFileText(InputFILE);
+//	int size = strlen(data.s);
+//	HuffmanCompress(map, data, size);
+//	char ch = getc(InputFILE);
+//	while (ch!=EOF)
+//	{
+//		for (int i = 0; i < strlen(map.charater); i++)
+//		{
+//			if (ch == map.charater[i])
+//			{
+//				fprintf(OutputFile , )
+//			}
+//		}
+//	}
+
+//}
+
