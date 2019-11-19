@@ -278,6 +278,19 @@ void CompressFile(HuffMap &map , NODE* root, int arr[], int top)
 }
 
 
+int convertBinaryToDecimal(long long n)
+{
+	int decimalNumber = 0, i = 0, remainder;
+	while (n != 0)
+	{
+		remainder = n % 10;
+		n /= 10;
+		decimalNumber += remainder * pow(2, i);
+		++i;
+	}
+	return decimalNumber;
+}
+
 //Lưu đống dữ liệu vào map
 void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  data, int size)
 {
@@ -287,16 +300,27 @@ void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  
 	NODE* root = builfHuffmanTree(data, size);
 	// Print Huffman codes using 
 	// the Huffman tree built above 
-	int arr[300], top = 0;
+	int arr[500];
+	long long top = 0;
 	map.BitArray = new int* [size];
 
 	map.charater = new char[size];
 	CompressFile(map , root, arr, top);
 
+
 	rewind(fileInput);
 
 	//Lưu vào file
 	char ch = getc(fileInput);
+	//Dem so luong cac bit da ma hoa
+	long long countBit8 = 0;
+	//Tong cac bit da ghi ra
+	long long countSumBit = 0;
+
+
+	long long countBit = 0;
+	long long sumBitOut = 0;
+	char bit8[8];
 	while (ch != EOF)
 	{
 		int j = 0;
@@ -306,34 +330,32 @@ void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  
 			{
 				while (map.BitArray[i][j] != 2)
 				{
-					fprintf(fileOut, "%d", map.BitArray[i][j]);
+					countSumBit++;
+
+					bit8[countBit++] = char(map.BitArray[i][j] + 48);
+					//fprintf(fileOut, "%d", map.BitArray[i][j]);
+					if (countBit == 8)
+					{
+						countBit = 0;
+						fprintf(fileOut, "%c", atoi(bit8));
+						countBit8 += 8;
+					}
+
 					j++;
 				}
+
 				break;
 			}
+			
 		}
 		ch = getc(fileInput);
+	}
+	for (int z = 0; z < countBit; z++)
+	{
+		fprintf(fileOut, "%c", bit8[z]);
 	}
 
 	
 }
 
-//void FileOutPut(FILE* InputFILE, FILE *OutputFile ,  HuffMap &map )
-//{
-//	HuffData data = ReadFileText(InputFILE);
-//	int size = strlen(data.s);
-//	HuffmanCompress(map, data, size);
-//	char ch = getc(InputFILE);
-//	while (ch!=EOF)
-//	{
-//		for (int i = 0; i < strlen(map.charater); i++)
-//		{
-//			if (ch == map.charater[i])
-//			{
-//				fprintf(OutputFile , )
-//			}
-//		}
-//	}
-
-//}
 

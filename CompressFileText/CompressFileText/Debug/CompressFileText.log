@@ -1,2 +1,4 @@
-﻿  main.cpp
+﻿  ComFileText.cpp
+C:\Users\Admin\Desktop\Compress file text\CompressFileText\CompressFileText\ComFileText.cpp(288,41): warning C4244: '+=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Admin\Desktop\Compress file text\CompressFileText\CompressFileText\ComFileText.cpp(308,32): warning C4244: 'argument': conversion from '__int64' to 'int', possible loss of data
   CompressFileText.vcxproj -> C:\Users\Admin\Desktop\Compress file text\CompressFileText\Debug\CompressFileText.exe
