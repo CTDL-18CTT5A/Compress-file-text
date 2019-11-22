@@ -417,6 +417,7 @@ void ReadHeaderFile(FILE* fileIN, HuffData& data)
 			ch = getc(fileIN);*/
 		data.s[i] = ch;
 
+
 		//Save wei
 		int wei = 0;
 		ch = getc(fileIN);
@@ -435,30 +436,20 @@ void ReadHeaderFile(FILE* fileIN, HuffData& data)
 			break;
 		ch = getc(fileIN);
 	}
+	data.s[i] = '\0';
 }
 
 
 
-void printbincharpad(char c, FILE* out)
-{
-	for (int i = 7; i >= 0; --i)
-	{
-		char s = ((c & (1 << i)) ? '1' : '0');
-		fprintf(out, "%c", s);
-	}
-}
 
-int getNumberOfFileAtIndex(FILE* in, int index)
+long long getNumberOfFileAtIndex(FILE* in, int index)
 {
 	fseek(in, index, SEEK_SET);
-	char c = getc(in);
-	int t = 0;
-	while (c != EOF)
-	{
-		t++;
-		c = getc(in);
-	}
-	return t;
+	int thisPoint = ftell(in);
+	fseek(in, 0, SEEK_END);
+	long long maxsize = ftell(in);
+	return maxsize - thisPoint;
+
 }
 
 
@@ -471,7 +462,7 @@ long long VitriLe(FILE* fileIN)
 
 }
 
-void ConvertToBinArray(FILE* in, int indexStart, int* a , int &k , long long viTriLe)
+void ConvertToBinArray(FILE* in, int indexStart, int* a , long long &k , long long viTriLe)
 {
 	long long EndFile = VitriLe(in);
 	fseek(in, indexStart, SEEK_SET);
@@ -486,19 +477,16 @@ void ConvertToBinArray(FILE* in, int indexStart, int* a , int &k , long long viT
 			char s = ((c & (1 << i)) ? '1' : '0');
 			s -= 48;
 			a[k] = s;
-			cout << a[k];
 			k++;
 			
 
 		}
-		cout << endl;
 		c = getc(in);
 		count++;
 	}
 	while (count!=EndFile)
 	{
 		a[k] = int(c - 48);
-		cout << a[k];
 		k++;
 		c = getc(in);
 		count++;
@@ -510,7 +498,7 @@ void Decode(FILE* in, FILE* out)
 {
 	//Lay Bit Le
 	
-	//Gán vtLe để lấy ra số bit lẻ
+	//______________Gán vtLe để lấy ra số bit lẻ_______________
 	long long vtLe = VitriLe(in);
 	fseek(in, vtLe, SEEK_SET);
 	char ch = getc(in);
@@ -527,23 +515,76 @@ void Decode(FILE* in, FILE* out)
 	
 
 
-	//Define max size of bit array
+	//____________Define max size of bit array_____________
 	int StartIndex = ftell(in);
-	int sizeOfBit = getNumberOfFileAtIndex(in, StartIndex)*8;
+	long long sizeOfBit = getNumberOfFileAtIndex(in, StartIndex)*8;
 	int* bit = new int[sizeOfBit];
-	int n = 0;
+	long long n = 0;
 	rewind(in);
 	fseek(in, StartIndex, SEEK_SET);
 
-	//Chuyển kí tự về bit và lưu hết vào trong mảng bit
+	//__________Chuyển kí tự về bit và lưu hết vào trong mảng bit____________
 	ConvertToBinArray(in, StartIndex, bit , n , vtLe);
 	//Tiếp tục lưu các bia thừa.
-	
 
 	int size = strlen(data.s);
 
+	//_________Tạo ra map dữ liệu____________
 	NODE* root = builfHuffmanTree(data, size);	
+	HuffMap map;
+	map.BitArray = new int* [size]; //SS
+	map.charater = new char [size]; //SS
+	int arr[500];
+	long long top = 0;
+	CompressFile(map, root, arr, top);
 
+	//Nếu cây huffman không tồn tại(Tức chỉ có 1 phần tử trong file)
+	cout << data.wei[0] << endl;
+	if (size == 1)
+	{
+		int temp = 0;
+		while (temp < data.wei[0])
+		{
+			fprintf(out, "%c",data.s[0]);
+			temp++;
+		}
+		return;
+	}
+
+	//________Chuyển từ dãy bit sang string để dễ so sánh_________
+	string* BitArray = new string[size];
+	for (int i = 0; i < size; i++)
+	{
+		int j = 0;
+		while (map.BitArray[i][j]!=2)
+		{
+			char test = char(map.BitArray[i][j]+48);
+			cout << test;
+			BitArray[i] += test;
+
+			j++;
+		}
+		//cout << BitArray[i] << endl;
+	}
+
+	//Bắt đầu so sánh và ghi ra file
+	string compare;
+	for (int i = 0; i < n; i++)
+	{
+		compare += char(bit[i]+48);
+		for (int k = 0; k < size; k++)
+		{
+			if (compare == BitArray[k])
+			{
+				//cout << map.BitArray[k][j];
+				cout << map.charater[k];
+				fprintf(out, "%c", map.charater[k]);
+
+				compare.clear();
+			}
+		}
+	}
+	
 
 
 }
