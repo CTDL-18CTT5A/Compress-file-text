@@ -2,6 +2,8 @@
 #include"ComFileText.h"
 #include<iostream>
 #include<vector>
+#include<sstream>
+#include<bitset>
 using namespace std;
 
 
@@ -246,7 +248,6 @@ void ArrayOutput(HuffMap &map , int index , int a[], int n)
 //Duyệt cây lưu dữ liệu vào map
 void CompressFile(HuffMap &map , NODE* root, int arr[], int top)
 {
-	NODE* temp = root;
 	static int index = 0;
 	// Assign 0 to left edge and recur 
 	if (root->pLeft) 
@@ -264,10 +265,8 @@ void CompressFile(HuffMap &map , NODE* root, int arr[], int top)
 		CompressFile(map,  root->pRight, arr, top + 1);
 	}
 
-	// If this is a leaf node, then 
-	// it contains one of the input 
-	// characters, print the character 
-	// and its code from arr[] 
+	
+	//Index là biến đếm những node lá ứng với các kí tự
 	if (isLeaf(root)) 
 	{ 
 		map.charater[index] = root->_text;
@@ -291,6 +290,7 @@ int convertBinaryToDecimal(long long n)
 	return decimalNumber;
 }
 
+
 //Lưu đống dữ liệu vào map
 void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  data, int size)
 {
@@ -305,9 +305,11 @@ void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  
 	map.BitArray = new int* [size];
 
 	map.charater = new char[size];
+
 	CompressFile(map , root, arr, top);
 
-
+	WriteHeaderFile(fileOut, data);
+	
 	rewind(fileInput);
 
 	//Lưu vào file
@@ -333,11 +335,16 @@ void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  
 					countSumBit++;
 
 					bit8[countBit++] = char(map.BitArray[i][j] + 48);
-					//fprintf(fileOut, "%d", map.BitArray[i][j]);
+					//cout << map.BitArray[i][j];
 					if (countBit == 8)
 					{
+						//cout << endl;
+						stringstream sstream(bit8);
+						std::bitset<8> bits;
+						sstream >> bits;
+						char textOutput = char(bits.to_ulong());
+						fprintf(fileOut, "%c", textOutput);
 						countBit = 0;
-						fprintf(fileOut, "%c", atoi(bit8));
 						countBit8 += 8;
 					}
 
@@ -350,12 +357,193 @@ void HuffmanCompress(FILE *fileInput , FILE *fileOut , HuffMap &map , HuffData  
 		}
 		ch = getc(fileInput);
 	}
+
+	int soBitLe = 0;
 	for (int z = 0; z < countBit; z++)
 	{
 		fprintf(fileOut, "%c", bit8[z]);
+		soBitLe++;
 	}
+
+
+	fprintf(fileOut, "%d", soBitLe);
+
 
 	
 }
 
 
+
+void WriteHeaderFile(FILE* Output, HuffData data)
+{
+	int size = strlen(data.s);
+	fprintf(Output, "%d", size);
+	fprintf(Output, "$");
+
+
+	for (int i = 0; i < size; i++)
+	{
+		fprintf(Output, "%c", data.s[i]);
+		fprintf(Output, "%d", data.wei[i]);
+		if (i != size - 1)
+			fprintf(Output, "$");
+		else
+			fprintf(Output, "#");
+	}
+
+}
+
+
+void ReadHeaderFile(FILE* fileIN, HuffData& data)
+{
+	char ch = getc(fileIN);
+	//Get size
+	int size = 0;
+	while (ch != '$')
+	{
+		int t = int(ch - 48);
+		size = size * 10 + t;
+		ch = getc(fileIN);
+	}
+	data.s = new char[size];
+	data.wei = new int[size];
+
+	ch = getc(fileIN);
+	//Save vào data
+	int i = 0;
+	while (ch != '#')
+	{
+		/*if (ch == '\n')
+			ch = getc(fileIN);*/
+		data.s[i] = ch;
+
+		//Save wei
+		int wei = 0;
+		ch = getc(fileIN);
+		while (ch != '$')
+		{
+			int t = int(ch - 48);
+			wei = wei * 10 + t;
+			ch = getc(fileIN);
+			if (ch == '#')
+				break;
+
+		}
+		data.wei[i] = wei;
+		i++;
+		if (ch == '#')
+			break;
+		ch = getc(fileIN);
+	}
+}
+
+
+
+void printbincharpad(char c, FILE* out)
+{
+	for (int i = 7; i >= 0; --i)
+	{
+		char s = ((c & (1 << i)) ? '1' : '0');
+		fprintf(out, "%c", s);
+	}
+}
+
+int getNumberOfFileAtIndex(FILE* in, int index)
+{
+	fseek(in, index, SEEK_SET);
+	char c = getc(in);
+	int t = 0;
+	while (c != EOF)
+	{
+		t++;
+		c = getc(in);
+	}
+	return t;
+}
+
+
+//Hàm trả về vị trí cuối bit lưu số bit lẻ trả vệ  vị trí con trỏ ở bit lẻ
+long long VitriLe(FILE* fileIN)
+{
+
+	fseek(fileIN, 0, SEEK_END);
+	return ftell(fileIN) - 1;
+
+}
+
+void ConvertToBinArray(FILE* in, int indexStart, int* a , int &k , long long viTriLe)
+{
+	long long EndFile = VitriLe(in);
+	fseek(in, indexStart, SEEK_SET);
+	int count = ftell(in);
+
+	char c = getc(in);
+	
+	while (count != viTriLe)
+	{
+		for (int i = 7; i >= 0; --i)
+		{
+			char s = ((c & (1 << i)) ? '1' : '0');
+			s -= 48;
+			a[k] = s;
+			cout << a[k];
+			k++;
+			
+
+		}
+		cout << endl;
+		c = getc(in);
+		count++;
+	}
+	while (count!=EndFile)
+	{
+		a[k] = int(c - 48);
+		cout << a[k];
+		k++;
+		c = getc(in);
+		count++;
+	}
+}
+
+
+void Decode(FILE* in, FILE* out)
+{
+	//Lay Bit Le
+	
+	//Gán vtLe để lấy ra số bit lẻ
+	long long vtLe = VitriLe(in);
+	fseek(in, vtLe, SEEK_SET);
+	char ch = getc(in);
+	int SoLuongBitLe = int(ch - 48);
+	//Sau khi lưu số lượng bit lẻ vì vtLe đang nằm ở cuối file , ta trừ đi số bit lẻ => ra đc vị trí số lẻ đầu tiên.
+	for(int z = 0; z < SoLuongBitLe; z++)
+		vtLe -= 1;
+
+
+	rewind(in);
+
+	HuffData data;
+	ReadHeaderFile(in, data);
+	
+
+
+	//Define max size of bit array
+	int StartIndex = ftell(in);
+	int sizeOfBit = getNumberOfFileAtIndex(in, StartIndex)*8;
+	int* bit = new int[sizeOfBit];
+	int n = 0;
+	rewind(in);
+	fseek(in, StartIndex, SEEK_SET);
+
+	//Chuyển kí tự về bit và lưu hết vào trong mảng bit
+	ConvertToBinArray(in, StartIndex, bit , n , vtLe);
+	//Tiếp tục lưu các bia thừa.
+	
+
+	int size = strlen(data.s);
+
+	NODE* root = builfHuffmanTree(data, size);	
+
+
+
+}

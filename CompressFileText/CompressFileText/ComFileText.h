@@ -70,8 +70,17 @@ void HuffmanCompress(FILE* fileInput, FILE* fileOut, HuffMap& map, HuffData  dat
 HuffData ReadFileText(FILE* p);
 
 
+//Decode
 
 
+void ReadHeaderFile(FILE* fileIN, HuffData& data);
+
+
+void WriteHeaderFile(FILE* Output, HuffData data);
+
+
+
+void Decode(FILE* in, FILE* out);
 
 
 
